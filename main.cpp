@@ -6,7 +6,7 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:22:10 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/10 19:13:53 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/10 22:42:24 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,14 @@ std::string itos(int number)
 	std::ostringstream ss;
 	ss << number;
 	return ss.str();
+}
+
+bool strisdigit(std::string str)
+{
+	for (std::string::iterator it = str.begin(); it != str.end(); it++)
+		if (!isdigit(*it))
+			return (false);
+	return (true);
 }
 
 namespace webserv
@@ -68,10 +76,9 @@ namespace webserv
 	}
 }
 
-static std::ifstream open_file(std::string file)
+static void open_file(std::ifstream & ifs, std::string file)
 {
 	struct stat		fileInfo;
-	std::ifstream	ifs;
 
 	if (!stat(file.c_str(), &fileInfo) && fileInfo.st_mode & S_IFDIR)
 	{
@@ -84,8 +91,6 @@ static std::ifstream open_file(std::string file)
 		webserv::error("An error occurred while opening the file");
 		exit (1);
 	}
-
-	return (ifs);
 }
 
 static void in_server(std::ifstream & ifs, std::string line,
@@ -137,36 +142,47 @@ static bool	normalize_line(std::ifstream & ifs, std::string & line, size_t & n_l
 
 typedef struct s_config
 {
-	typedef typename std::string	string;
+	typedef std::string	string;
 
-	int											port;
-	string										host;
-	string										server_name;
-	int											body_size;
-	bool										autoindex;
-	std::map<string, string>					error;
+	string						port;
+	string						host;
+	string						body_size;
+	std::map<string, string>	error;
+	std::vector<string>			server_name;
 
-	std::vector<string>							location;
-	std::map<string, string>					root;
-	std::map<string, string>					index_file;
-	std::map<string, std::vector<string>>		method;
-	std::map<string, std::pair<string, string>>	redirect;
-	std::map<string, std::map<string, string>>	cgi;
+	std::vector<string>								location;
+	std::map<string, bool>							autoindex;
+	std::map<string, string>						root;
+	std::map<string, string>						index_file;
+	std::map<string, std::vector<string> >			method;
+	std::map<string, std::pair<string, string> >	redirect;
+	std::map<string, std::map<string, string> >		cgi;
 }	t_config;
 
 static void print_config(t_config config)
 {
-	typedef typename std::string	string;
+	typedef std::string	string;
 
-	webserv::debug("PORT : " + itos(config.port));
+	webserv::debug("PORT : " + config.port);
 	webserv::debug("HOST : " + config.host);
-	webserv::debug("SERVER NAME : " + config.server_name);
-	webserv::debug("BODY SIZE : " + itos(config.body_size));
-	webserv::debug("AUTOINDEX : " + string((config.autoindex) ? "True" : "False"));
-
+	webserv::debug("BODY SIZE : " + config.body_size);
+	
+	webserv::debug("SERVER NAME : ");
+	std::vector<string>::iterator it_vec = config.server_name.begin();
+	for (; it_vec != config.server_name.end(); it_vec++)
+		webserv::debug("\tVALUE : " + *it_vec);
+	webserv::debug("ERROR : ");
+	std::map<string, string>::iterator it_error = config.error.begin();
+	for (; it_error != config.error.end(); it_error++)
+	{
+		webserv::debug("\tCODE : " + (*it_error).first);
+		webserv::debug("\tREDIRECT : " + (*it_error).second);
+	}
 	std::vector<string>::iterator it = config.location.begin();
 	for (; it != config.location.end(); it++)
 	{
+		webserv::debug("AUTOINDEX : "
+					+ std::string((config.autoindex[*it]) ? "True" : "False"));
 		webserv::debug("URL RULE" + *it);
 		webserv::debug("\tROOT : " + config.root[*it]);
 		webserv::debug("\tINDEX FILE : " + config.index_file[*it]);
@@ -219,6 +235,133 @@ static void validKey(std::ifstream & ifs, std::string key)
 	}
 }
 
+static std::string normalize_str(std::string str)
+{
+	str.erase(remove_if(str.begin(), str.end(), isspace), str.end());
+	return (str);
+}
+
+static void add_param(std::ifstream & ifs, t_config & config,
+						std::string & params, std::string key)
+{
+	std::vector<std::string>	value;
+	std::string					tmp;
+
+	if (!isUrlKey(key))
+	{
+		for (std::string::iterator i = params.begin(); i != params.end(); i++)
+		{
+			if (*i == ',')
+			{
+				value.push_back(normalize_str(tmp));
+				tmp.clear();
+			}
+			else
+				tmp += *i;
+		}
+		value.push_back(normalize_str(tmp));
+		
+		if (value[0].empty())
+		{
+			ifs.close();
+			webserv::error("Value in " + key + " empty");
+			exit (1);
+		}
+		if (key == "host" && config.host.empty() && value.size() == 1)
+			config.host = value[0];
+		else if (key == "host")
+		{
+			ifs.close();
+			if (value.size() != 1)
+				webserv::error("Too many argument in host value");
+			else
+				webserv::error("Redefinition value in host");
+			exit (1);
+		}
+
+		if (key == "port" && config.port.empty() && value.size() == 1)
+			config.port = value[0];
+		else if (key == "port")
+		{
+			ifs.close();
+			if (value.size() != 1)
+				webserv::error("Number value port is incorect");
+			else
+				webserv::error("Redefinition value in port");
+			exit (1);
+		}
+
+		if (key == "body_size" && config.body_size.empty() && value.size() == 1)
+			config.body_size = value[0];
+		else if (key == "body_size")
+		{
+			ifs.close();
+			if (value.size() != 1)
+				webserv::error("Number value body_size is incorect");
+			else
+				webserv::error("Redefinition value in body_size");
+			exit (1);
+		}
+
+		if (key == "server_name" && config.server_name.empty() && value.size() >= 1)
+		{
+			std::vector<std::string>::iterator it_vec = value.begin();
+			for (; it_vec != value.end(); it_vec++)
+				config.server_name.push_back(*it_vec);
+		}
+		else if (key == "server_name")
+		{
+			ifs.close();
+			if (value.size() < 1)
+				webserv::error("Number value  body_size is incorect");
+			else
+				webserv::error("Redefinition value in body_size");
+			exit (1);
+		}
+
+		if (key == "error" && value.size() >= 2)
+		{
+			std::vector<std::string>::iterator it_vec = value.begin();
+			for (; it_vec != value.end() - 1; it_vec++)
+			{
+				if (!strisdigit(*it_vec))
+				{
+					ifs.close();
+					if (value.size() < 2)
+						webserv::error(*it_vec + " in error is not digit");
+					exit (1);
+				}
+				else if (config.error.count(*it_vec))
+				{
+					ifs.close();
+					if (value.size() < 2)
+						webserv::error("Redefinition error");
+					exit (1);
+				}
+				else
+					config.error[*it_vec] = *(value.end()-1);
+			}
+		}
+		else if (key == "error")
+		{
+			ifs.close();
+			if (value.size() < 2)
+				webserv::error("Number value error is incorect");
+			exit (1);
+		}
+	}
+	else
+	{
+		std::cout << "A Faire" << std::endl;
+	}
+
+	std::vector<std::string>::iterator it;
+	webserv::debug("KEY : " + key);
+	for (it = value.begin(); it != value.end(); it++)
+		webserv::debug("VALUE : " + *it);
+	std::cout << std::endl;
+}
+
 static t_config add_config(std::ifstream & ifs, std::string conf)
 {
 	t_config	config;
@@ -231,21 +374,14 @@ static t_config add_config(std::ifstream & ifs, std::string conf)
 	{
 		if (*it == ':' && find_key == false)
 		{
-			std::cout << tmp << std::endl;
 			validKey(ifs, tmp);
 			find_key = true;
-			if (isUrlKey(tmp))
-				std::cout << getLocation(tmp) << std::endl;
 			key = tmp;
 			tmp.clear();
 		}
 		else if (*it == ';' && find_key == true)
 		{
-			/*
-				Reprendre ici, tu as la cle
-				tu doit parser les value et les ajouter
-			*/
-			std::cout << tmp << std::endl << std::endl;
+			add_param(ifs, config, tmp, key);
 			find_key = false;
 			tmp.clear();
 		}
@@ -267,7 +403,7 @@ static t_config add_config(std::ifstream & ifs, std::string conf)
 
 void config_file(std::string file)
 {
-	std::ifstream			ifs = open_file(file);
+	std::ifstream			ifs;
 	std::string				line;
 	size_t 					n_line = 0;
 	bool 					is_server = false;
@@ -275,6 +411,7 @@ void config_file(std::string file)
 	std::string				one_line_config;
 	std::vector<t_config>	config;
 
+	open_file(ifs, file);
 	while (std::getline(ifs, line))
 	{
 		if (normalize_line(ifs, line, n_line))
