@@ -2,6 +2,7 @@
 
 #include "Route.hpp"
 #include "Request.hpp"
+#include "mime.hpp"
 #include "utils.hpp"
 
 #define E404() { \
@@ -12,19 +13,26 @@
 	continue ; \
 }
 
-void sendf(int new_sock, int fd)
+bool sendf(int new_sock, std::string path)
 {
-	long int off = 0;
+	struct stat	info;
 
+	if (stat(path.c_str(), &info) == -1 || info.st_mode & S_IFDIR)
+		return (false);
+	std::string header = (std::stringstream() << "HTTP/1.1 200 OK\r\nContent-length: " << info.st_size << "\r\nContent-Type: " << mime(path) << "\r\n\r\n").str();
+	send(new_sock, header.c_str(), header.size(), 0);
+	int fd = open(path.c_str(), O_RDONLY);
 	#ifdef __APPLE__
 		struct sf_hdtr	hdtr = { NULL, 0, NULL, 0 };
-		while (sendfile(new_sock, fd, &off, SENDFILE_BUF, &hdtr, 0))
-			;
+		int len = 0;
+		sendfile(new_sock, fd, 0, &len, &hdtr, 0)
 	#else
+		long int off = 0;
 		while (sendfile(new_sock, fd, &off, SENDFILE_BUF))
 			;
 	#endif
 	close(fd);
+	return (true);
 }
 
 class	Server {
@@ -99,9 +107,7 @@ class	Server {
 						path += route->index;
 
 					server->info("sending file: " + path);
-					int	fd = open(path.c_str(), O_RDONLY);
-					if (fd == -1) E404();
-					sendf(new_sock, fd);
+					if (!sendf(new_sock, path)) E404();
 				}
 				else
 					E404();
