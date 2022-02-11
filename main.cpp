@@ -6,7 +6,7 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:22:10 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/10 22:42:24 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/11 02:10:49 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,32 @@ bool strisdigit(std::string str)
 			return (false);
 	return (true);
 }
+
+std::string strtolower(std::string str)
+{
+	for (std::string::iterator it = str.begin(); it != str.end(); it++)
+		*it = tolower(*it);
+	return (str);
+}
+
+std::vector<std::string> split(std::string s, std::string delimiter)
+{
+    size_t						pos_start = 0;
+	size_t						pos_end;
+	size_t						delim_len = delimiter.size();
+    std::string 				value;
+	std::vector<std::string>	res;
+
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
+	{
+        value = s.substr(pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back(value);
+    }
+    res.push_back(s.substr(pos_start));
+    return res;
+}
+
 
 namespace webserv
 {
@@ -181,9 +207,9 @@ static void print_config(t_config config)
 	std::vector<string>::iterator it = config.location.begin();
 	for (; it != config.location.end(); it++)
 	{
-		webserv::debug("AUTOINDEX : "
+		webserv::debug("URL RULE : " + *it);
+		webserv::debug("\tAUTOINDEX : "
 					+ std::string((config.autoindex[*it]) ? "True" : "False"));
-		webserv::debug("URL RULE" + *it);
 		webserv::debug("\tROOT : " + config.root[*it]);
 		webserv::debug("\tINDEX FILE : " + config.index_file[*it]);
 		webserv::debug("\tMETHOD ACCEPT : ");
@@ -241,125 +267,90 @@ static std::string normalize_str(std::string str)
 	return (str);
 }
 
+static bool exist(std::vector<std::string> test, std::string search)
+{
+	std::vector<std::string>::iterator it = test.begin();
+
+	for (; it != test.end(); it++)
+		if (*it == search)
+			return (true);
+	return (false);
+}
+
 static void add_param(std::ifstream & ifs, t_config & config,
 						std::string & params, std::string key)
 {
-	std::vector<std::string>	value;
-	std::string					tmp;
+	std::vector<std::string>			value;
+	std::vector<std::string>			tmp;
+	std::vector<std::string>::iterator	it;
 
 	if (!isUrlKey(key))
 	{
-		for (std::string::iterator i = params.begin(); i != params.end(); i++)
+		value = split(params, ",");
+		for (it = value.begin(); it != value.end(); it++)
 		{
-			if (*i == ',')
+			if (key == "port")
+				config.port = normalize_str(*it);
+			else if (key == "host")
+				config.host = normalize_str(*it);
+			else if (key == "body_size")
+				config.body_size = normalize_str(*it);
+			else if (key == "error")
 			{
-				value.push_back(normalize_str(tmp));
-				tmp.clear();
+				if (it == value.end()-1)
+					continue ;
+				config.error[*it] = normalize_str(*(value.end()-1));
 			}
-			else
-				tmp += *i;
-		}
-		value.push_back(normalize_str(tmp));
-		
-		if (value[0].empty())
-		{
-			ifs.close();
-			webserv::error("Value in " + key + " empty");
-			exit (1);
-		}
-		if (key == "host" && config.host.empty() && value.size() == 1)
-			config.host = value[0];
-		else if (key == "host")
-		{
-			ifs.close();
-			if (value.size() != 1)
-				webserv::error("Too many argument in host value");
-			else
-				webserv::error("Redefinition value in host");
-			exit (1);
-		}
-
-		if (key == "port" && config.port.empty() && value.size() == 1)
-			config.port = value[0];
-		else if (key == "port")
-		{
-			ifs.close();
-			if (value.size() != 1)
-				webserv::error("Number value port is incorect");
-			else
-				webserv::error("Redefinition value in port");
-			exit (1);
-		}
-
-		if (key == "body_size" && config.body_size.empty() && value.size() == 1)
-			config.body_size = value[0];
-		else if (key == "body_size")
-		{
-			ifs.close();
-			if (value.size() != 1)
-				webserv::error("Number value body_size is incorect");
-			else
-				webserv::error("Redefinition value in body_size");
-			exit (1);
-		}
-
-		if (key == "server_name" && config.server_name.empty() && value.size() >= 1)
-		{
-			std::vector<std::string>::iterator it_vec = value.begin();
-			for (; it_vec != value.end(); it_vec++)
-				config.server_name.push_back(*it_vec);
-		}
-		else if (key == "server_name")
-		{
-			ifs.close();
-			if (value.size() < 1)
-				webserv::error("Number value  body_size is incorect");
-			else
-				webserv::error("Redefinition value in body_size");
-			exit (1);
-		}
-
-		if (key == "error" && value.size() >= 2)
-		{
-			std::vector<std::string>::iterator it_vec = value.begin();
-			for (; it_vec != value.end() - 1; it_vec++)
-			{
-				if (!strisdigit(*it_vec))
-				{
-					ifs.close();
-					if (value.size() < 2)
-						webserv::error(*it_vec + " in error is not digit");
-					exit (1);
-				}
-				else if (config.error.count(*it_vec))
-				{
-					ifs.close();
-					if (value.size() < 2)
-						webserv::error("Redefinition error");
-					exit (1);
-				}
-				else
-					config.error[*it_vec] = *(value.end()-1);
-			}
-		}
-		else if (key == "error")
-		{
-			ifs.close();
-			if (value.size() < 2)
-				webserv::error("Number value error is incorect");
-			exit (1);
+			else if (key == "server_name")
+				config.server_name.push_back(normalize_str(*it));
 		}
 	}
 	else
 	{
-		std::cout << "A Faire" << std::endl;
+		value = split(params, ",");
+		for (it = value.begin(); it != value.end(); it++)
+		{
+			if (!exist(config.location, getLocation(key)))
+				config.location.push_back(getLocation(key));
+			tmp = split(*it, " ");
+			for (size_t i = 1; i < tmp.size(); i++)
+			{
+				if (tmp[0] == "autoindex")
+				{
+					if (strtolower(tmp[i]) == "true" || tmp[i] == "1")
+						config.autoindex[getLocation(key)] = true;
+					else
+						config.autoindex[getLocation(key)] = false;
+				}
+				else if (tmp[0] == "root")
+				{
+					config.root[getLocation(key)] = tmp[i];
+				}
+				else if (tmp[0] == "index_file")
+				{
+					config.index_file[getLocation(key)] = tmp[i];
+				}
+				else if (tmp[0] == "method")
+				{
+					config.method[getLocation(key)].push_back(tmp[i]);
+				}
+				else if (tmp[0] == "redirect")
+				{
+					config.redirect[getLocation(key)] = make_pair(tmp[1], tmp[2]);
+				}
+				else if (tmp[0] == "cgi")
+				{
+					config.cgi[getLocation(key)][tmp[1]] = tmp[2];
+				}
+				else
+				{
+					ifs.close();
+					webserv::error("Rules \"" + tmp[0] + "\" in URL is invalide");
+					exit (1);
+				}
+			}
+		}
 	}
-
-	std::vector<std::string>::iterator it;
-	webserv::debug("KEY : " + key);
-	for (it = value.begin(); it != value.end(); it++)
-		webserv::debug("VALUE : " + *it);
-	std::cout << std::endl;
 }
 
 static t_config add_config(std::ifstream & ifs, std::string conf)
@@ -395,13 +386,11 @@ static t_config add_config(std::ifstream & ifs, std::string conf)
 		webserv::error("A parameter of one of the servers does not have a ';'");
 		exit (1);
 	}
-	
-	std::cout << std::endl;
-	print_config(config);
+
 	return (config);
 }
 
-void config_file(std::string file)
+std::vector<t_config> config_file(std::string file)
 {
 	std::ifstream			ifs;
 	std::string				line;
@@ -422,11 +411,8 @@ void config_file(std::string file)
 			continue ;
 		else if (line == "}" && !one_line_config.empty())
 		{
-			webserv::debug(one_line_config);
-			std::cout << std::endl;
 			config.push_back(add_config(ifs, one_line_config));
 			one_line_config.clear();
-			std::cout << std::endl;
 		}
 		else
 			one_line_config += line;
@@ -439,18 +425,30 @@ void config_file(std::string file)
 		webserv::error("A scope is missing at the end of the file");
 		exit (1);
 	}
+
+	std::vector<t_config>::iterator it;
+	for (it = config.begin(); it != config.end(); it++)
+	{
+		print_config(*it);
+		std::cout << std::endl;
+	}
+
 	webserv::success("Configuration load successfully");
+	return (config);
 }
 
 int main(int ac, char **av)
 {
+	std::vector<t_config> config;
+
 	if (ac > 2)
 		webserv::log("Additional arguments will be ignored");
 	try {
-		config_file(av[1]);
+		config = config_file(av[1]);
 	}
 	catch (std::exception & e) {
 		webserv::log("Using default config");
 	}
+
 	return (0);
 }
