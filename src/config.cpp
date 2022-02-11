@@ -6,7 +6,7 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/11 02:35:03 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/11 11:02:59 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/11 12:06:15 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -175,31 +175,117 @@ static void add_param(std::ifstream & ifs, t_config & config,
 	std::vector<std::string>			tmp;
 	std::vector<std::string>::iterator	it;
 
-	if (!isUrlKey(key))
+	value = split(params, ",");
+	for (it = value.begin(); it != value.end(); it++)
 	{
-		value = split(params, ",");
-		for (it = value.begin(); it != value.end(); it++)
+		if (!isUrlKey(key))
 		{
 			if (key == "port")
-				config.port = normalize_str(*it);
+			{
+				if (!strisdigit(normalize_str(*it)))
+				{
+					ifs.close();
+					webserv::error("Port must and a number");
+					exit (1);
+				}
+				else if (normalize_str(*it).empty())
+				{
+					ifs.close();
+					webserv::error("Port Can not be empty");
+					exit (1);
+				}
+				else if (config.port.empty())
+					config.port = normalize_str(*it);
+				else
+				{
+					ifs.close();
+					webserv::error("Port already exists \"" + config.port + "\" redefinition in \"" + normalize_str(*it) + "\" not possible");
+					exit (1);
+				}
+			}
 			else if (key == "host")
-				config.host = normalize_str(*it);
+			{
+				if (normalize_str(*it).empty())
+				{
+					ifs.close();
+					webserv::error("Host Can not be empty");
+					exit (1);
+				}
+				else if (config.host.empty())
+					config.host = normalize_str(*it);
+				else
+				{
+					ifs.close();
+					webserv::error("Host already exists \"" + config.host + "\" redefinition in \"" + normalize_str(*it) + "\" not possible");
+					exit (1);
+				}
+			}
 			else if (key == "body_size")
-				config.body_size = normalize_str(*it);
+			{
+				if (!strisdigit(normalize_str(*it)))
+				{
+					ifs.close();
+					webserv::error("Body_size must and a number");
+					exit (1);
+				}
+				else if (config.body_size.empty())
+					config.body_size = normalize_str(*it);
+				else
+				{
+					ifs.close();
+					webserv::error("Body_size already exists \"" + config.body_size + "\" redefinition in \"" + normalize_str(*it) + "\" not possible");
+					exit (1);
+				}
+			}
 			else if (key == "error")
 			{
-				if (it == value.end()-1)
+				if (value.size() < 2)
+				{
+					ifs.close();
+					webserv::error("Error not enough arguments");
+					exit (1);
+				}
+				if (it == value.end() - 1)
 					continue ;
-				config.error[*it] = normalize_str(*(value.end()-1));
+				if (!strisdigit(normalize_str(*it)))
+				{
+					ifs.close();
+					webserv::error("Error must and a number");
+					exit (1);
+				}
+				else if (config.error.count(normalize_str(*it)))
+				{
+					ifs.close();
+					webserv::error("Error already exists in \"" + normalize_str(*it) + "\" redefinition in \"" + normalize_str(*(value.end()-1)) + "\" not possible");
+					exit (1);
+				}
+				else
+					config.error[normalize_str(*it)] = normalize_str(*(value.end()-1));
 			}
 			else if (key == "server_name")
+			{
+				if (value.size() < 2)
+				{
+					ifs.close();
+					webserv::error("Server_name not enough arguments");
+					exit (1);
+				}
+				else if (normalize_str(*it).empty())
+				{
+					ifs.close();
+					webserv::error("Server_name empty value is not possible");
+					exit (1);
+				}
+				else if (exist(config.server_name, normalize_str(*it)))
+				{
+					ifs.close();
+					webserv::error("Server_name \"" + normalize_str(*it) + "\" already exists");
+					exit (1);
+				}
 				config.server_name.push_back(normalize_str(*it));
+			}
 		}
-	}
-	else
-	{
-		value = split(params, ",");
-		for (it = value.begin(); it != value.end(); it++)
+		else
 		{
 			if (!exist(config.location, getLocation(key)))
 				config.location.push_back(getLocation(key));
@@ -210,27 +296,63 @@ static void add_param(std::ifstream & ifs, t_config & config,
 				{
 					if (strtolower(tmp[i]) == "true" || tmp[i] == "1")
 						config.autoindex[getLocation(key)] = true;
-					else
+					else if (strtolower(tmp[i]) == "false" || tmp[i] == "0")
 						config.autoindex[getLocation(key)] = false;
+					else
+					{
+						ifs.close();
+						webserv::error("Value incorect autoindex in \"" + key + "\"");
+						exit (1);
+					}
 				}
 				else if (tmp[0] == "root")
 				{
+					if (tmp.size() != 2)
+					{
+						ifs.close();
+						webserv::error("Incorect value root in \"" + key + "\"");
+						exit (1);
+					}
 					config.root[getLocation(key)] = tmp[i];
 				}
 				else if (tmp[0] == "index_file")
 				{
+					if (tmp.size() != 2)
+					{
+						ifs.close();
+						webserv::error("Incorect value index_file in \"" + key + "\"");
+						exit (1);
+					}
 					config.index_file[getLocation(key)] = tmp[i];
 				}
 				else if (tmp[0] == "method")
 				{
+					if (tmp.size() < 2)
+					{
+						ifs.close();
+						webserv::error("Incorect value method in \"" + key + "\"");
+						exit (1);
+					}
 					config.method[getLocation(key)].push_back(tmp[i]);
 				}
 				else if (tmp[0] == "redirect")
 				{
+					if (tmp.size() != 3)
+					{
+						ifs.close();
+						webserv::error("Incorect value redirect in \"" + key + "\"");
+						exit (1);
+					}
 					config.redirect[getLocation(key)] = make_pair(tmp[1], tmp[2]);
 				}
 				else if (tmp[0] == "cgi")
 				{
+					if (tmp.size() != 3)
+					{
+						ifs.close();
+						webserv::error("Incorect value cgi in \"" + key + "\"");
+						exit (1);
+					}
 					config.cgi[getLocation(key)][tmp[1]] = tmp[2];
 				}
 				else
