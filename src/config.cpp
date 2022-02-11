@@ -1,106 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/02/10 11:22:10 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/11 02:10:49 by bledda           ###   ########.fr       */
+/*   Created: 2022/02/11 02:35:03 by bledda            #+#    #+#             */
+/*   Updated: 2022/02/11 02:36:04 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <sys/stat.h>
-#include "color.h"
-#include <cctype>
-#include <vector>
-#include <sstream>
-#include <map>
-#include <utility>
-
-std::string itos(int number)
-{
-	std::ostringstream ss;
-	ss << number;
-	return ss.str();
-}
-
-bool strisdigit(std::string str)
-{
-	for (std::string::iterator it = str.begin(); it != str.end(); it++)
-		if (!isdigit(*it))
-			return (false);
-	return (true);
-}
-
-std::string strtolower(std::string str)
-{
-	for (std::string::iterator it = str.begin(); it != str.end(); it++)
-		*it = tolower(*it);
-	return (str);
-}
-
-std::vector<std::string> split(std::string s, std::string delimiter)
-{
-    size_t						pos_start = 0;
-	size_t						pos_end;
-	size_t						delim_len = delimiter.size();
-    std::string 				value;
-	std::vector<std::string>	res;
-
-    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
-	{
-        value = s.substr(pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res.push_back(value);
-    }
-    res.push_back(s.substr(pos_start));
-    return res;
-}
-
-
-namespace webserv
-{
-	#define NAME_WEBSERV "[WebServ] "
-
-	void perror(const char * val)
-	{
-		std::cerr << RED << NAME_WEBSERV;
-		std::perror(val);
-		std::cerr << RESET;
-	}
-
-	void error(std::string val)
-	{
-		std::cerr << RED << NAME_WEBSERV;
-		std::cerr << val << std::endl;
-		std::cerr << RESET;
-	}
-
-	void log(std::string val)
-	{
-		std::clog << BLUE << NAME_WEBSERV;
-		std::clog << val << std::endl;
-		std::clog << RESET;
-	}
-
-	void success(std::string val)
-	{
-		std::cout << GREEN << NAME_WEBSERV;
-		std::cout << val << std::endl;
-		std::cout << RESET;
-	}
-
-	void debug(std::string val)
-	{
-		std::cout << YELLOW << NAME_WEBSERV;
-		std::cout << val << std::endl;
-		std::cout << RESET;
-	}
-}
+#include "../includes/config.hpp"
 
 static void open_file(std::ifstream & ifs, std::string file)
 {
@@ -165,25 +75,6 @@ static bool	normalize_line(std::ifstream & ifs, std::string & line, size_t & n_l
 	}
 	return (false);
 }
-
-typedef struct s_config
-{
-	typedef std::string	string;
-
-	string						port;
-	string						host;
-	string						body_size;
-	std::map<string, string>	error;
-	std::vector<string>			server_name;
-
-	std::vector<string>								location;
-	std::map<string, bool>							autoindex;
-	std::map<string, string>						root;
-	std::map<string, string>						index_file;
-	std::map<string, std::vector<string> >			method;
-	std::map<string, std::pair<string, string> >	redirect;
-	std::map<string, std::map<string, string> >		cgi;
-}	t_config;
 
 static void print_config(t_config config)
 {
@@ -435,20 +326,4 @@ std::vector<t_config> config_file(std::string file)
 
 	webserv::success("Configuration load successfully");
 	return (config);
-}
-
-int main(int ac, char **av)
-{
-	std::vector<t_config> config;
-
-	if (ac > 2)
-		webserv::log("Additional arguments will be ignored");
-	try {
-		config = config_file(av[1]);
-	}
-	catch (std::exception & e) {
-		webserv::log("Using default config");
-	}
-
-	return (0);
 }
