@@ -6,7 +6,7 @@
 #    By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/02/11 02:44:02 by bledda            #+#    #+#              #
-#    Updated: 2022/02/11 02:57:10 by bledda           ###   ########.fr        #
+#    Updated: 2022/02/11 03:07:48 by bledda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -42,48 +42,39 @@ HEADERS				= $(addprefix ${FOLDER_HEADER},${HEADER_FILES})
 
 #	COMPILATION		############################################################
 CC					= clang++
-CFLAGS  			= -Wall -Wextra -Werror -O3
+CFLAGS  			= -Wall -Wextra -Werror -std=c++98
 RM					= rm -rf
 REMAKE				= @make -j --no-print-directory
 ################################################################################
 
-#	RULES	#####################################################################
+#	RULES	####################################################################
 all:
 			$(REMAKE) $(NAME)
 
 $(NAME):	${OBJS}
 			@printf $(magenta)
-			@printf "\nStart build ⏳\n"
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
-			@printf "Compiling WebServ\n"
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
-			@printf $(reset)
-			@$(CC) $(CFLAGS) ${OBJS} -o $(NAME)
-			@printf $(magenta)
-			@printf "WebServ is ready ✅\n"
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+			@printf "\nStart build ${NAME}⏳\n"
+			@printf "${NAME} is ready ✅\n"
 			@printf $(reset)
 
 %.o: %.cpp	$(HEADERS)
 			@printf $(yellow)
-			@printf "Generating WebServ objects... %-28.28s\r" $@
+			@printf "Generating ${NAME} objects... %-28.28s\r" $@
 			@$(CC) -c $(CFLAGS) -o $@ $<
+			@printf $(reset)
 
 re: 		fclean all
 
 clean:
 			@${RM} ${OBJS}
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
 			@printf $(magenta)
 			@printf "Object files have been deleted 🚮\n"
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
 			@printf $(reset)
 
 fclean:		clean
 			@${RM} $(NAME)
 			@printf $(magenta)
 			@printf "Your folder is now clean 🧹\n"
-			@printf "➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
 			@printf $(reset)
 
 .PHONY: 	all clean fclean re
