@@ -6,16 +6,18 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/11 02:35:05 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/11 02:41:17 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/11 10:59:36 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include "../includes/utils.hpp"
+#include "utils.hpp"
 #include <map>
 #include <fstream>
 #include <sys/stat.h>
+#include <cstdlib>
+#include <algorithm>
 
 typedef struct s_config
 {

@@ -6,7 +6,7 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/11 02:30:47 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/11 02:38:37 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/11 10:56:05 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <vector>
 #include "color.h"
 #include <sstream>
+#include <cstdio>
 
 namespace webserv
 {

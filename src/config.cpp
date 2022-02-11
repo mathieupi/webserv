@@ -6,7 +6,7 @@
 /*   By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/11 02:35:03 by bledda            #+#    #+#             */
-/*   Updated: 2022/02/11 02:36:04 by bledda           ###   ########.fr       */
+/*   Updated: 2022/02/11 11:02:59 by bledda           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ static void open_file(std::ifstream & ifs, std::string file)
 		webserv::error(file + " is not a file");
 		exit (1);
 	}
-  	ifs.open(file);
+  	ifs.open(file.c_str());
 	if (!ifs.is_open())
 	{
 		webserv::error("An error occurred while opening the file");

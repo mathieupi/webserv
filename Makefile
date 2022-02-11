@@ -6,7 +6,7 @@
 #    By: bledda <bledda@student.42nice.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/02/11 02:44:02 by bledda            #+#    #+#              #
-#    Updated: 2022/02/11 03:07:48 by bledda           ###   ########.fr        #
+#    Updated: 2022/02/11 11:04:06 by bledda           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -54,6 +54,7 @@ all:
 $(NAME):	${OBJS}
 			@printf $(magenta)
 			@printf "\nStart build ${NAME}⏳\n"
+			@${CC} ${CFLAGS} ${OBJS} -o ${NAME}
 			@printf "${NAME} is ready ✅\n"
 			@printf $(reset)
 
