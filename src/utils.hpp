@@ -55,20 +55,11 @@ std::vector<std::string>	split(std::string &s)
 	return (split);
 }
 
-void _fmt(std::ostringstream &ss) { (void)ss; }
-
-template <typename T, typename ...Args>
-void _fmt(std::ostringstream &ss, T &t, const Args &...args)
-{
-	ss << t;
-	_fmt(ss, args...);
-}
-
-template <typename ...Args>
-std::string fmt(const Args &...args)
+template <typename T>
+std::string atos(const T &t)
 {
 	std::ostringstream ss;
-	_fmt(ss, args...);
+	ss << t;
 	return (ss.str());
 }
 
@@ -81,13 +72,13 @@ void	println(int fd, const std::string &s)
 /* Function to write format error in the config file */
 void	err(const char *filename, const int idx, const std::string &msg)
 {
-	println(2, fmt(RED "error: ", filename, ":", idx, ": ", msg));
+	println(2, std::string(RED "error: ") + filename + ":" + atos(idx) + ": " + msg);
 	exit(1);
 }
 /* Function to write system error such as open ... */
 void	perr(const std::string &msg, const std::string &reason = std::strerror(errno))
 {
-	println(2, fmt(RED "error: ", msg, ": ", reason));
+	println(2, std::string(RED "error: ") + msg + ": " + reason);
 	exit(1);
 }
 
