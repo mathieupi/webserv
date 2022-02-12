@@ -39,7 +39,7 @@ class	Server {
 	public:
 	int							port;
 	in_addr_t					host;
-	std::vector<std::string>	name;
+	std::set<std::string>		name;
 	std::map<int, std::string>	error;
 	size_t						body_size;
 	std::vector<Route>			routes;
@@ -55,7 +55,7 @@ class	Server {
 	{ host = _host == "localhost" ? INADDR_ANY : inet_addr(_host.c_str()); }
 
 	void	setName(const std::string &_name)
-	{ name.push_back(_name); }
+	{ name.insert(_name); }
 
 	void	setError(const std::string &_code, const std::string &_url)
 	{ strisdigit(_code) ? error[atoi(_code.c_str())] = _url : throw "invalid unumber"; }
@@ -75,8 +75,8 @@ class	Server {
 		std::cout << ENDL;
 		std::cout << "port " << port << ENDL;
 		std::cout << "host " << (host & 255) << "." << (host >> 8 & 255) << "." << (host >> 16 & 255) << "." << (host >> 24) << ENDL;
-		for (size_t i = 0; i < name.size(); i++)
-			std::cout << "name " << name[i] << ENDL;
+		for (std::set<std::string>::iterator it = name.begin(); it != name.end(); it++)
+			std::cout << "name " << *it << ENDL;
 		for (std::map<int, std::string>::iterator it = error.begin(); it != error.end(); it++)
 			std::cout << "error " << it->first << " " << it->second << ENDL;
 		std::cout << "body_size " << body_size << ENDL;

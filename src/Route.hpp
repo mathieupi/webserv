@@ -14,9 +14,7 @@ class	Route {
 	std::pair<int, std::string>			redirect;
 
 	Route(std::string _pattern)
-		: pattern(_pattern),
-			index("index.html"),
-			root("./www") {}
+		: pattern(_pattern) {}
 	~Route() {}
 
 	void	setAutoIndex(const std::string &_val)
