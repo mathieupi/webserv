@@ -52,7 +52,7 @@ class	Server {
 	{ strisdigit(_port) ? port = atoi(_port.c_str()) : throw "invalid unumber"; }
 
 	void	setHost(const std::string &_host)
-	{ host = inet_addr(_host.c_str()); }
+	{ host = _host == "localhost" ? INADDR_ANY : inet_addr(_host.c_str()); }
 
 	void	setName(const std::string &_name)
 	{ name.push_back(_name); }
