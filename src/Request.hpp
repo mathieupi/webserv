@@ -17,6 +17,7 @@ class Request {
 		int		ret = recv(sock, buf, body_size, 0);
 		if (ret == -1) throw "cannot recv";
 
+		buf[ret] = '\0';
 		plain = std::string(buf);
 
 		std::stringstream	ss(plain);
