@@ -11,21 +11,23 @@ class Request {
 	std::string	url;
 	std::string	protocol;
 
-	Request(int sock)
+	Request(int sock, size_t body_size)
 	{
-		char	buf[REQ_BUF + 1] = {0};
-		int		ret = recv(sock, buf, REQ_BUF, 0);
-		if (ret == -1) throw std::runtime_error("cannot recv");
+		char	*buf = new char[body_size + 1];
+		int		ret = recv(sock, buf, body_size, 0);
+		if (ret == -1) throw "cannot recv";
 
 		plain = std::string(buf);
 
 		std::stringstream	ss(plain);
 		std::getline(ss, request);
 		std::vector<std::string>	req = split(request);
-		if (req.size() != 3) throw std::runtime_error("invalid request");
+		if (req.size() != 3) throw "invalid request";
 		type = req[0];
 		url = req[1];
 		protocol = req[2];
+
+		delete [] buf;
 	}
 	~Request() {}
 };

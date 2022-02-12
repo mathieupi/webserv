@@ -13,7 +13,7 @@
 	continue ; \
 }
 
-bool sendf(int new_sock, std::string path)
+bool sendf(int new_sock, const std::string &path)
 {
 	struct stat	info;
 
@@ -37,21 +37,54 @@ bool sendf(int new_sock, std::string path)
 
 class	Server {
 	public:
-	std::vector<Route>	routes;
-	int					port;
-	in_addr_t			host;
-	std::string			name;
+	int							port;
+	in_addr_t					host;
+	std::vector<std::string>	name;
+	std::map<int, std::string>	error;
+	size_t						body_size;
+	std::vector<Route>			routes;
 
-	Server() : port(8080), host(INADDR_ANY), name("") {}
+	Server() : port(8080), host(INADDR_ANY), body_size(1024) {}
 	~Server() {}
 
+	/*** SETTERS ***/
+	void	setPort(const std::string &_port)
+	{ strisdigit(_port) ? port = atoi(_port.c_str()) : throw "invalid unumber"; }
 
-	void info(const std::string &msg) const
-	{ println(1, GRE + msg + " " RED + name + EOC ":" ORA + atos(port)); }
+	void	setHost(const std::string &_host)
+	{ host = inet_addr(_host.c_str()); }
 
-	void perr(const std::string &msg) const
-	{ println(2, RED "error: " + name + ":" ORA + atos(port) + RED " " + msg + ": " + std::strerror(errno)); }
+	void	setName(const std::string &_name)
+	{ name.push_back(_name); }
 
+	void	setError(const std::string &_code, const std::string &_url)
+	{ strisdigit(_code) ? error[atoi(_code.c_str())] = _url : throw "invalid unumber"; }
+
+	void	setBodySize(const std::string &_body_size)
+	{ strisdigit(_body_size) ? body_size = atoi(_body_size.c_str()) : throw "invalid unumber"; }
+
+	/*** DEBUG ***/
+	void	info(const std::string &msg) const
+	{ println(1, GRE + msg + " " ORA + atos(port)); }
+
+	void	perr(const std::string &msg) const
+	{ println(2, RED "error: " ORA + atos(port) + RED " " + msg + ": " + std::strerror(errno)); }
+
+	void	debug()
+	{
+		std::cout << ENDL;
+		std::cout << "port " << port << ENDL;
+		std::cout << "host " << (host & 255) << "." << (host >> 8 & 255) << "." << (host >> 16 & 255) << "." << (host >> 24) << ENDL;
+		for (size_t i = 0; i < name.size(); i++)
+			std::cout << "name " << name[i] << ENDL;
+		for (std::map<int, std::string>::iterator it = error.begin(); it != error.end(); it++)
+			std::cout << "error " << it->first << " " << it->second << ENDL;
+		std::cout << "body_size " << body_size << ENDL;
+		for (size_t i = 0; i < routes.size(); i++)
+			routes[i].debug();
+	}
+
+	/*** START ***/
 	static void	*start(const Server *server)
 	{
 		server->info("starting ...");
@@ -84,7 +117,7 @@ class	Server {
 				}
 
 				/*** PARSE ***/
-				Request request(new_sock);
+				Request request(new_sock, server->body_size);
 				server->info(ENDL RED + request.type + GRE " " + request.url + BLU " " + request.protocol);
 
 				/*** FIND ROUTE ***/

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <fstream>
 #include <vector>
+#include <set>
 #include <map>
 #include <sstream>
 #include <cstdlib>
@@ -23,7 +24,6 @@
 #endif
 
 #define DEFAULT_CONF "default.conf"
-#define REQ_BUF 2048
 #define SENDFILE_BUF 2048
 
 #define EOC "\033[0m"    //reset
@@ -56,7 +56,7 @@ std::vector<std::string>	split(std::string &s)
 }
 
 template <typename T>
-std::string atos(const T &t)
+std::string	atos(const T &t)
 {
 	std::ostringstream ss;
 	ss << t;
@@ -70,13 +70,13 @@ void	println(int fd, const std::string &s)
 }
 
 /* Function to write format error in the config file */
-void	err(const char *filename, const int idx, const std::string &msg)
+int	err(const char *filename, const int idx, const std::string &msg)
 {
 	println(2, std::string(RED "error: ") + filename + ":" + atos(idx) + ": " + msg);
 	exit(1);
 }
 /* Function to write system error such as open ... */
-void	perr(const std::string &msg, const std::string &reason = std::strerror(errno))
+int	perr(const std::string &msg, const std::string &reason = std::strerror(errno))
 {
 	println(2, std::string(RED "error: ") + msg + ": " + reason);
 	exit(1);
@@ -96,4 +96,33 @@ bool	scope(const char *filename, int *idx, std::ifstream &f, std::string &ln)
 {
 	if (!getline(idx, f, ln)) err(filename, *idx, "unexpected eof");
 	return (ln != ";");
+}
+
+bool	strisdigit(const std::string &str)
+{ return (str.find_first_not_of("0123465798") == std::string::npos); }
+
+template<typename E, typename T>
+bool isIn(E elm, size_t n, T first ...)
+{
+	va_list		args;
+	va_start(args, first);
+	
+	while (n--)
+	{
+		if (elm == first)
+		{
+			va_end(args);
+			return (true);
+		}
+		first = va_arg(args, T);
+	}
+	va_end(args);
+	return (false);
+}
+
+std::string strtolower(std::string str)
+{
+	for (std::string::iterator it = str.begin(); it != str.end(); it++)
+		*it = tolower(*it);
+	return (str);
 }
