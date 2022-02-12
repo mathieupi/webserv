@@ -23,9 +23,9 @@ class Request {
 		std::stringstream	ss(plain);
 		std::getline(ss, request);
 		std::vector<std::string>	req = split(request);
-		if (req.size() != 3) throw "invalid request";
+		if (req.size() != 3) throw std::runtime_error("invalid request");
 		type = req[0];
-		url = req[1];
+		url = urlsanitizer(req[1]);
 		protocol = req[2];
 
 		delete [] buf;

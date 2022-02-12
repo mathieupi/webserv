@@ -22,7 +22,7 @@ class	Route {
 	{ index = _index; }
 
 	void	setRoot(const std::string &_root)
-	{ root = _root; }
+	{ root = urlsanitizer(_root); }
 
 	void	setCgi(const std::string &_ext, const std::string &_path)
 	{ cgi[_ext] = _path; }

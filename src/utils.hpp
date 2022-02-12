@@ -44,7 +44,7 @@ bool	endwith(std::string s, std::string end)
 	if (end.size() > s.size()) return (false);
 	return (s.substr(s.size() - end.size()) == end);
 }
-
+/*
 std::vector<std::string>	split(const std::string &s)
 {
 	std::vector<std::string> split;
@@ -54,21 +54,22 @@ std::vector<std::string>	split(const std::string &s)
 		split.push_back(word);
 	return (split);
 }
-
-std::vector<std::string> split(const std::string &s, const std::string &delimiter)
+*/
+std::vector<std::string> split(std::string s, const std::string &charset = "\t\n ")
 {
-	size_t						pos_start = 0;
-	size_t						pos_end;
-	size_t						delim_len = delimiter.size();
-	std::vector<std::string>	res;
+	std::vector<std::string>	split;
+	size_t	begin;
+	size_t	end;
 
-	while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
+	while ((begin = s.find_first_not_of(charset)) != std::string::npos)
 	{
-		res.push_back(s.substr(pos_start, pos_end - pos_start));
-		pos_start = pos_end + delim_len;
+		s = s.substr(begin);
+		end = s.find_first_of(charset);
+		if (end == std::string::npos) end = s.size();
+		split.push_back(s.substr(0, end));
+		s = s.substr(end);
 	}
-	res.push_back(s.substr(pos_start));
-	return res;
+	return (split);
 }
 
 template <typename T>
@@ -141,4 +142,26 @@ std::string strtolower(std::string str)
 	for (std::string::iterator it = str.begin(); it != str.end(); it++)
 		*it = tolower(*it);
 	return (str);
+}
+
+std::string urlsanitizer(std::string url)
+{
+	size_t end = url.find_first_of("#?");
+	if (end != std::string::npos) url = url.substr(0, end);
+	std::vector<std::string> lst = split(url, "/");
+	url = "/";
+	for (size_t i = 0; i < lst.size(); i++)
+		url += lst[i] + "/";
+	return (url);
+}
+
+bool	exist(const std::string &name)
+{
+	struct stat info;
+	return (stat(name.c_str(), &info) == 0); 
+}
+
+std::string popchar(const std::string &s)
+{
+	return (s.substr(0, s.size() - 1));
 }

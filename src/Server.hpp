@@ -84,29 +84,21 @@ class	Server {
 
 	const std::string	match(std::string url)
 	{
-		(void) url;
-		/*std::cout << RED << url << ENDL << std::endl;
 		if (routes.count(url))
-		{
-			std::cout << "here " << *(split(url, "/").end() - 1) << std::endl;
-			if (!routes[url].root.empty() && routes[url].root != url)
-				return (match(routes[url].root));
-			else if (routes[url].index)
-				return (routes[url].root + "/" + *(split(url, "/").end() - 1));
-			else
-				return (routes[url].root);
-		}
-		else if (url.empty())
-			return ("404");
-		else
-		{
-			std::cout << url << std::endl;
-			std::cout << "-> " << url.substr(0, url.find_last_of('/')) << std::endl;
-			//exit(1);
-			//std::cout << "here1" << std::endl;
-			return (match(url.substr(0, url.find_last_of('/'))));
-		}*/
-		
+			return (routes[url].root + routes[url].index);
+		std::string	save;
+		do {
+			size_t idx = url.find_last_of('/', url.size() - 2);
+			save = url.substr(idx, url.size() - idx - 1) + save;
+			url = url.substr(0, idx + 1);
+			if (routes.count(url))
+			{
+				std::string file = popchar(routes[url].root) + save;
+				if (exist(file + routes[url].index))
+					return (file + routes[url].index);
+				return (file);
+			}
+		} while (url != "/");
 		return ("404");
 	}
 
@@ -149,26 +141,22 @@ class	Server {
 					continue ;
 				}
 
-				std::cout << "parsing request" << ENDL;
+				server->info("parsing request");
 
 				/*** PARSE ***/
 				Request request(new_sock, server->body_size);
-				server->info(ENDL RED + request.type + GRE " " + request.url + BLU " " + request.protocol);
-
-				std::cout << RED "will match" << ENDL << std::endl;
+				std::cout << RED << request.type << GRE " " << request.url << BLU " " << request.protocol << ENDL;
 
 				/*** SEND ***/
-				const std::string path = server->match(split(request.url, "?")[0]);
+				const std::string path = server->match(request.url);
 
-				std::cout << RED "route found: " << path << ENDL << std::flush;
+				server->info(RED "route found " + path);
 
 				/*** CGI ***/
 				//if (path == cgi)
 				//	cgi();
 				//else
 				//	senf();
-
-				server->info("sending file: " + path);
 
 				struct stat	info;
 				if (stat(path.c_str(), &info) == -1)
