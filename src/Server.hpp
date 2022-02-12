@@ -24,8 +24,8 @@ bool sendf(int new_sock, std::string path)
 	int fd = open(path.c_str(), O_RDONLY);
 	#ifdef __APPLE__
 		struct sf_hdtr	hdtr = { NULL, 0, NULL, 0 };
-		int len = 0;
-		sendfile(new_sock, fd, 0, &len, &hdtr, 0)
+		off_t len = 0;
+		sendfile(new_sock, fd, 0, &len, &hdtr, 0);
 	#else
 		long int off = 0;
 		while (sendfile(new_sock, fd, &off, SENDFILE_BUF))

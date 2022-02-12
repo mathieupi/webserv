@@ -1,4 +1,4 @@
-FLAG = -Wall -Wextra -Werror
+FLAG = -Wall -Wextra -Werror -std=c++98
 SRCS = main.cpp
 OBJS = $(patsubst %.cpp,bin/%.o,$(SRCS))
 NAME = webserv
