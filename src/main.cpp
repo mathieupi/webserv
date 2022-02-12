@@ -11,14 +11,15 @@ int	main(int argc, char **argv)
 	std::cout << std::endl;
 
 	/*** LAUNCH ***/
-	pthread_t *threads = new pthread_t[conf.servers.size()];
-	for (size_t i = 0; i < conf.servers.size(); i++)
-		pthread_create(threads + i, NULL, (void* (*)(void	*))Server::start, (void	*)&conf.servers[i]);
+	//pthread_t *threads = new pthread_t[conf.servers.size()];
+	//for (size_t i = 0; i < conf.servers.size(); i++)
+	//	pthread_create(threads + i, NULL, (void* (*)(void	*))Server::start, (void	*)&conf.servers[i]);
+	Server::start(&conf.servers[0]);
 
 	/*** JOIN ***/
-	for (size_t i = 0; i < conf.servers.size(); i++)
-		pthread_join(threads[i], NULL);
+	//for (size_t i = 0; i < conf.servers.size(); i++)
+	//	pthread_join(threads[i], NULL);
 
 	/*** FREE ***/
-	delete [] threads;
+	//delete [] threads;
 }

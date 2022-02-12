@@ -5,7 +5,6 @@
 
 class	Route {
 	public:
-	std::string							pattern;
 	bool								autoindex;
 	std::string							index;
 	std::string							root;
@@ -13,8 +12,7 @@ class	Route {
 	std::vector<std::string>			method;
 	std::pair<int, std::string>			redirect;
 
-	Route(std::string _pattern)
-		: pattern(_pattern) {}
+	Route() {}
 	~Route() {}
 
 	void	setAutoIndex(const std::string &_val)
@@ -39,7 +37,6 @@ class	Route {
 
 	void	debug()
 	{
-		std::cout << "route " << pattern << ENDL;
 		std::cout << "\tautoindex " << autoindex << ENDL;
 		std::cout << "\tindex " << index << ENDL;
 		std::cout << "\troot " << root << ENDL;
@@ -49,7 +46,4 @@ class	Route {
 			std::cout << "\tmethod " << method[i] << ENDL;
 		std::cout << "\tredirect " << redirect.first << " " << redirect.second << ENDL;
 	}
-
-	bool	match(Request &req) const
-	{ return (startwith(req.url, pattern)); }
 };

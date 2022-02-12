@@ -5,20 +5,16 @@
 #include "mime.hpp"
 #include "utils.hpp"
 
-#define E404() { \
-	server->info("E404"); \
-	if (send(new_sock, "404", 3, 0) == -1) \
-		server->perr("send 404"); \
+#define E(code) { \
+	server->info("E" # code); \
+	if (send(new_sock, # code, 3, 0) == -1) \
+		server->perr("send " # code); \
 	close(new_sock); \
 	continue ; \
 }
 
-bool sendf(int new_sock, const std::string &path)
+void sendf(int new_sock, const std::string &path, struct stat &info)
 {
-	struct stat	info;
-
-	if (stat(path.c_str(), &info) == -1 || info.st_mode & S_IFDIR)
-		return (false);
 	std::string header = "HTTP/1.1 200 OK\r\nContent-length: " + atos(info.st_size) + "\r\nContent-Type: " + mime(path) + "\r\n\r\n";
 	send(new_sock, header.c_str(), header.size(), 0);
 	int fd = open(path.c_str(), O_RDONLY);
@@ -32,19 +28,18 @@ bool sendf(int new_sock, const std::string &path)
 			;
 	#endif
 	close(fd);
-	return (true);
 }
 
 class	Server {
 	public:
-	int							port;
-	in_addr_t					host;
-	std::set<std::string>		name;
-	std::map<int, std::string>	error;
-	size_t						body_size;
-	std::vector<Route>			routes;
+	int								port;
+	in_addr_t						host;
+	std::set<std::string>			name;
+	std::map<int, std::string>		error;
+	size_t							body_size;
+	std::map<std::string, Route>	routes;
 
-	Server() : port(8080), body_size(1024) {}
+	Server() : body_size(1024) {}
 	~Server() {}
 
 	/*** SETTERS ***/
@@ -80,30 +75,68 @@ class	Server {
 		for (std::map<int, std::string>::iterator it = error.begin(); it != error.end(); it++)
 			std::cout << "error " << it->first << " " << it->second << ENDL;
 		std::cout << "body_size " << body_size << ENDL;
-		for (size_t i = 0; i < routes.size(); i++)
-			routes[i].debug();
+		for (std::map<std::string, Route>::iterator it = routes.begin(); it != routes.end(); it++)
+		{
+			std::cout << "match " << it->first << ENDL;
+			it->second.debug();
+		}
+	}
+
+	const std::string	match(std::string url)
+	{
+		(void) url;
+		/*std::cout << RED << url << ENDL << std::endl;
+		if (routes.count(url))
+		{
+			std::cout << "here " << *(split(url, "/").end() - 1) << std::endl;
+			if (!routes[url].root.empty() && routes[url].root != url)
+				return (match(routes[url].root));
+			else if (routes[url].index)
+				return (routes[url].root + "/" + *(split(url, "/").end() - 1));
+			else
+				return (routes[url].root);
+		}
+		else if (url.empty())
+			return ("404");
+		else
+		{
+			std::cout << url << std::endl;
+			std::cout << "-> " << url.substr(0, url.find_last_of('/')) << std::endl;
+			//exit(1);
+			//std::cout << "here1" << std::endl;
+			return (match(url.substr(0, url.find_last_of('/'))));
+		}*/
+		
+		return ("404");
 	}
 
 	/*** START ***/
-	static void	*start(const Server *server)
+	#define SERVER_ERROR(msg) { \
+		server->perr(msg); \
+		return (NULL); \
+	} 
+
+	static void	*start(Server *server)
 	{
 		server->info("starting ...");
 
 		int					sock, new_sock;
-		socklen_t			addrlen;
 		struct sockaddr_in	addr;
+		socklen_t			addrlen = sizeof(addr);
+		int	opt = 1;
+
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = server->host;
 		addr.sin_port = htons(server->port);
 
 		/*** SETUP ***/
-		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0
-			|| bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0
-			|| listen(sock, 10) < 0)
-		{
-			server->perr("cannot start");
-			return (NULL);
-		}
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+			SERVER_ERROR("cannot create socket");
+		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+		if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+			SERVER_ERROR("cannot bind");
+		if (listen(sock, 10) < 0)
+			SERVER_ERROR("cannot listen");
 
 		server->info("started");
 
@@ -116,40 +149,46 @@ class	Server {
 					continue ;
 				}
 
+				std::cout << "parsing request" << ENDL;
+
 				/*** PARSE ***/
 				Request request(new_sock, server->body_size);
 				server->info(ENDL RED + request.type + GRE " " + request.url + BLU " " + request.protocol);
 
-				/*** FIND ROUTE ***/
-				const Route *route = NULL;
-				for (size_t i = 0; i < server->routes.size(); i++)
-				{
-					if (server->routes[i].match(request))
-					{
-						route = &server->routes[i];
-						server->info("match: " + server->routes[i].pattern);
-						break ;
-					}
-				}
+				std::cout << RED "will match" << ENDL << std::endl;
 
 				/*** SEND ***/
-				if (route)
-				{
-					std::string path = route->root + "/" + request.url.substr(route->pattern.size());
-					if (endwith(path, "/"))
-						path += route->index;
+				const std::string path = server->match(split(request.url, "?")[0]);
 
-					server->info("sending file: " + path);
-					if (!sendf(new_sock, path)) E404();
+				std::cout << RED "route found: " << path << ENDL << std::flush;
+
+				/*** CGI ***/
+				//if (path == cgi)
+				//	cgi();
+				//else
+				//	senf();
+
+				server->info("sending file: " + path);
+
+				struct stat	info;
+				if (stat(path.c_str(), &info) == -1)
+					E(404)
+				else if (info.st_mode & S_IFDIR)
+				{
+					// if (autoindex)
+					//else
+					E(403);
 				}
 				else
-					E404();
+					sendf(new_sock, path, info);
 
 				/*** CLOSE ***/
 				close(new_sock);
 			}
 			catch (const std::exception &e)
 			{
+				// E500
+				E(500);
 				server->perr(e.what());
 			}
 		}

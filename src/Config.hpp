@@ -36,7 +36,7 @@ class Config {
 						std::vector<std::string> sargv = split(ln);
 						if (sargv[0] == "match" && need(sargv, 2))
 						{
-							Route route(sargv[1]);
+							Route &route = server.routes[sargv[1]];
 							while (scope(filename, &idx, f, ln))
 							{
 								std::vector<std::string> margv = split(ln);
@@ -55,7 +55,12 @@ class Config {
 								else
 									throw "invalid property";
 							}
-							server.routes.push_back(route);
+							if (route.method.empty())
+							{
+								route.setMethod("GET");
+								route.setMethod("POST");
+								route.setMethod("DELETE");
+							}
 						}
 						else if (sargv[0] == "port" && need(sargv, 2))
 							server.setPort(sargv[1]);
