@@ -36,7 +36,7 @@ class Config {
 						std::vector<std::string> sargv = split(ln);
 						if (sargv[0] == "match" && need(sargv, 2))
 						{
-							Route &route = server.routes[sargv[1]];
+							Route &route = server.routes[endwith(sargv[1], "/") ? sargv[1] : sargv[1] + "/"];
 							while (scope(filename, &idx, f, ln))
 							{
 								std::vector<std::string> margv = split(ln);
