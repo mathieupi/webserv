@@ -73,7 +73,7 @@ class Config {
 					servers.push_back(server);
 				}
 				else
-					err(filename, idx, "not allowed kwd");
+					err(filename, idx, "invalid property");
 			}
 			catch (char const *e)
 			{ err(filename, idx, std::string(e)); }
