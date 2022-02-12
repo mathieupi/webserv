@@ -33,7 +33,7 @@ class	Route {
 	{ isIn(strtolower(_method), 3, "get", "post", "delete") ? method.push_back(strtolower(_method)) : throw "invalid method"; }
 
 	void	setRedirect(const int _code, const std::string &_redirect)
-	{ _code < 0 || _code < 300 || _code > 307 ? redirect = make_pair(_code, _redirect) : throw "invalid redirect code"; }
+	{ _code >= 300 && _code <= 307 ? redirect = make_pair(_code, _redirect) : throw "invalid redirect code"; }
 	void	setRedirect(const std::string &_code, const std::string &_redirect)
 	{ strisdigit(_code) ? setRedirect(atoi(_code.c_str()), _redirect) : throw "invalid unumber"; }
 
