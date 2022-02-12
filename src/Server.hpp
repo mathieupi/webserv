@@ -19,7 +19,7 @@ bool sendf(int new_sock, std::string path)
 
 	if (stat(path.c_str(), &info) == -1 || info.st_mode & S_IFDIR)
 		return (false);
-	std::string header = (std::stringstream() << "HTTP/1.1 200 OK\r\nContent-length: " << info.st_size << "\r\nContent-Type: " << mime(path) << "\r\n\r\n").str();
+	std::string header = fmt("HTTP/1.1 200 OK\r\nContent-length: ", info.st_size, "\r\nContent-Type: ", mime(path), "\r\n\r\n");
 	send(new_sock, header.c_str(), header.size(), 0);
 	int fd = open(path.c_str(), O_RDONLY);
 	#ifdef __APPLE__
@@ -47,10 +47,10 @@ class	Server {
 
 
 	void info(const std::string &msg) const
-	{ println(1, std::stringstream() << GRE << msg << " " RED << name << EOC ":" ORA << port); }
+	{ println(1, fmt(GRE, msg, " " RED, name, EOC ":" ORA, port)); }
 
 	void perr(const std::string &msg) const
-	{ println(2, std::stringstream() << RED "error: " << name << ":" ORA << port << RED " " << msg << ": " << std::strerror(errno)); }
+	{ println(2, fmt(RED "error: ", name, ":" ORA, port, RED " ", msg, ": ", std::strerror(errno))); }
 
 	static void	*start(const Server *server)
 	{
