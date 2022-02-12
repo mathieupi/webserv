@@ -44,7 +44,7 @@ class	Server {
 	size_t						body_size;
 	std::vector<Route>			routes;
 
-	Server() : port(8080), host(INADDR_ANY), body_size(1024) {}
+	Server() : port(8080), body_size(1024) {}
 	~Server() {}
 
 	/*** SETTERS ***/
@@ -52,7 +52,7 @@ class	Server {
 	{ strisdigit(_port) ? port = atoi(_port.c_str()) : throw "invalid unumber"; }
 
 	void	setHost(const std::string &_host)
-	{ host = _host == "localhost" ? INADDR_ANY : inet_addr(_host.c_str()); }
+	{ host = inet_addr(_host == "localhost" ? "127.0.0.1" : _host.c_str()); }
 
 	void	setName(const std::string &_name)
 	{ name.insert(_name); }
