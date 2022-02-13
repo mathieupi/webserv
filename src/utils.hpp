@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <stdexcept>
 #include <fcntl.h>
+#include <dirent.h>
 
 #ifdef __APPLE__
 # include <sys/socket.h>
@@ -24,7 +25,10 @@
 #endif
 
 #define DEFAULT_CONF "default.conf"
+#define DEFAULT_404_FILE "www/404.html"
+#define AUTOINDEX_TEMPLATE_FILE "www/autoindex.html"
 #define SENDFILE_BUF 2048
+#define READFILE_BUF 2048
 
 #define EOC "\033[0m"    //reset
 #define ENDL EOC "\n"    //reset + endl
@@ -44,18 +48,8 @@ bool	endwith(std::string s, std::string end)
 	if (end.size() > s.size()) return (false);
 	return (s.substr(s.size() - end.size()) == end);
 }
-/*
-std::vector<std::string>	split(const std::string &s)
-{
-	std::vector<std::string> split;
-	std::stringstream ss(s);
-	std::string word;
-	while (ss >> word)
-		split.push_back(word);
-	return (split);
-}
-*/
-std::vector<std::string> split(std::string s, const std::string &charset = "\t\n ")
+
+std::vector<std::string>	split(std::string s, const std::string &charset = "\t\n ")
 {
 	std::vector<std::string>	split;
 	size_t	begin;
@@ -119,7 +113,7 @@ bool	strisdigit(const std::string &str)
 { return (str.find_first_not_of("0123465798") == std::string::npos); }
 
 template<typename E, typename T>
-bool isIn(E elm, size_t n, T first ...)
+bool	isIn(E elm, size_t n, T first ...)
 {
 	va_list		args;
 	va_start(args, first);
@@ -137,14 +131,14 @@ bool isIn(E elm, size_t n, T first ...)
 	return (false);
 }
 
-std::string strtolower(std::string str)
+std::string	strtolower(std::string str)
 {
 	for (std::string::iterator it = str.begin(); it != str.end(); it++)
 		*it = tolower(*it);
 	return (str);
 }
 
-std::string urlsanitizer(std::string url)
+std::string	urlsanitizer(std::string url)
 {
 	size_t end = url.find_first_of("#?");
 	if (end != std::string::npos) url = url.substr(0, end);
@@ -155,13 +149,37 @@ std::string urlsanitizer(std::string url)
 	return (url);
 }
 
-bool	exist(const std::string &name)
+bool	exist(const std::string &name, struct stat *info)
+{ return (stat(name.c_str(), info) == 0); }
+
+std::string	popchar(const std::string &s)
+{ return (s.substr(0, s.size() - 1)); }
+
+std::string	ftos(const std::string &filename)
 {
-	struct stat info;
-	return (stat(name.c_str(), &info) == 0); 
+	std::ifstream	f;
+	std::string		s;
+	char			buf[READFILE_BUF + 1];
+	f.open(filename.c_str());
+
+	while (f)
+	{
+		f.read(buf, READFILE_BUF);
+		buf[f.gcount()] = '\0';
+		s += buf;
+	}
+	return (s);
 }
 
-std::string popchar(const std::string &s)
+std::string	replaceAll(std::string s, const std::string &substr, const std::string &newSubstr)
 {
-	return (s.substr(0, s.size() - 1));
+	size_t	idx = 0;
+	while (1)
+	{
+		size_t	find = s.find(substr, idx);
+		if (find == std::string::npos) break;
+		s.replace(find, substr.size(), newSubstr);
+		idx = find + newSubstr.size();
+	}
+	return (s);
 }

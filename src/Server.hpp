@@ -2,6 +2,7 @@
 
 #include "Route.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
 #include "mime.hpp"
 #include "utils.hpp"
 
@@ -13,9 +14,14 @@
 	continue ; \
 }
 
+std::string headers(const std::string &code, size_t len, const std::string &type)
+{
+	return ("HTTP/1.1 " + code + "\r\nContent-length: " + atos(len) + "\r\nContent-Type: " + type + "\r\n");
+}
+
 void sendf(int new_sock, const std::string &path, struct stat &info)
 {
-	std::string header = "HTTP/1.1 200 OK\r\nContent-length: " + atos(info.st_size) + "\r\nContent-Type: " + mime(path) + "\r\n\r\n";
+	std::string header = headers("200 OK", info.st_size, mime(path)) + "\r\n";
 	send(new_sock, header.c_str(), header.size(), 0);
 	int fd = open(path.c_str(), O_RDONLY);
 	#ifdef __APPLE__
@@ -82,32 +88,38 @@ class	Server {
 		}
 	}
 
-	const std::string	match(std::string url)
+	Response	match(std::string url)
 	{
-		if (routes.count(url))
-			return (routes[url].root + routes[url].index);
+		struct stat info;
+
+		if (routes.count(url) && exist(routes[url].root + routes[url].index, &info))
+			return (Response(200, routes[url].root + routes[url].index, &routes[url]));
 		std::string	save;
 		do {
 			size_t idx = url.find_last_of('/', url.size() - 2);
 			save = url.substr(idx, url.size() - idx - 1) + save;
 			url = url.substr(0, idx + 1);
+			std::cout <<url << " " << save << ENDL;
 			if (routes.count(url))
 			{
 				std::string file = popchar(routes[url].root) + save;
-				if (exist(file + routes[url].index))
-					return (file + routes[url].index);
-				return (file);
+				std::cout << file << ENDL;
+				if (exist(file + routes[url].index, &info))
+					return (Response(200, file + routes[url].index, &routes[url]));
+				if (exist(file, &info))
+					return (Response(200, file, &routes[url]));
+				break ;
 			}
 		} while (url != "/");
-		return ("404");
+		return (Response(404, error.count(404) && exist(error[404], &info) ? error[404] : DEFAULT_404_FILE, NULL));
 	}
 
-	/*** START ***/
 	#define SERVER_ERROR(msg) { \
 		server->perr(msg); \
 		return (NULL); \
 	} 
 
+	/*** START ***/
 	static void	*start(Server *server)
 	{
 		server->info("starting ...");
@@ -144,13 +156,13 @@ class	Server {
 				server->info("parsing request");
 
 				/*** PARSE ***/
-				Request request(new_sock, server->body_size);
-				std::cout << RED << request.type << GRE " " << request.url << BLU " " << request.protocol << ENDL;
+				Request req(new_sock, server->body_size);
+				std::cout << RED << req.type << GRE " " << req.url << BLU " " << req.protocol << ENDL;
 
-				/*** SEND ***/
-				const std::string path = server->match(request.url);
+				/*** FINDING ROUTE ***/
+				Response res = server->match(req.url);
 
-				server->info(RED "route found " + path);
+				server->info(RED "route found " + res.path);
 
 				/*** CGI ***/
 				//if (path == cgi)
@@ -158,17 +170,36 @@ class	Server {
 				//else
 				//	senf();
 
+				/*** SEND ***/
 				struct stat	info;
-				if (stat(path.c_str(), &info) == -1)
+				if (stat(res.path.c_str(), &info) == -1)
 					E(404)
 				else if (info.st_mode & S_IFDIR)
 				{
-					// if (autoindex)
-					//else
-					E(403);
+					if (res.route && res.route->autoindex)
+					{
+						DIR				*dir;
+						struct dirent	*diread;
+						std::string		file = ftos(AUTOINDEX_TEMPLATE_FILE);
+						size_t			start = file.find("{{"), end = file.find("}}");
+						std::string		s = file.substr(0, start);
+						std::string		pattern = file.substr(start + 2, end - start - 2);
+
+						if ((dir = opendir(res.path.c_str())) == NULL)
+							E(403);
+						while ((diread = readdir(dir)))
+							s += replaceAll(replaceAll(pattern,
+										"$NAME", diread->d_name),
+										"$URL", req.url + diread->d_name);
+						s += file.substr(end + 2);
+						s = headers("200 OK", s.size(), "text/html") + "\r\n" + s;
+						send(new_sock, s.c_str(), s.size(), 0);
+					}
+					else
+						E(403);
 				}
 				else
-					sendf(new_sock, path, info);
+					sendf(new_sock, res.path, info);
 
 				/*** CLOSE ***/
 				close(new_sock);
