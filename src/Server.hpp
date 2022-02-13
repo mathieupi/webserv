@@ -188,9 +188,19 @@ class	Server {
 						if ((dir = opendir(res.path.c_str())) == NULL)
 							E(403);
 						while ((diread = readdir(dir)))
-							s += replaceAll(replaceAll(pattern,
+						{
+							struct stat	info;
+							char		date[128];
+							stat((res.path + "/" + diread->d_name).c_str(), &info);
+							strftime(date, 128, "%d %h %Y", localtime(&info.st_ctime));
+
+							s += replaceAll(replaceAll(replaceAll(replaceAll(replaceAll(pattern,
 										"$NAME", diread->d_name),
-										"$URL", req.url + diread->d_name);
+										"$URL", req.url + diread->d_name),
+										"$DATE", std::string(date)),
+										"$SIZE", readable_fsize(info.st_size)),
+										"$ISDIR", info.st_mode & S_IFDIR ? "1" : "");
+						}
 						s += file.substr(end + 2);
 						s = headers("200 OK", s.size(), "text/html") + "\r\n" + s;
 						send(new_sock, s.c_str(), s.size(), 0);

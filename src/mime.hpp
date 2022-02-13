@@ -86,6 +86,7 @@ class MimeMap {
 		map["3gp"] = "video/3gpp";
 		map["3g2"] = "video/3gpp2";
 		map["7z"] = "application/x-7z-compressed";
+		map["wasm"] = "application/wasm";
 	}
 	~MimeMap() {}
 };

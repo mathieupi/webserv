@@ -183,3 +183,15 @@ std::string	replaceAll(std::string s, const std::string &substr, const std::stri
 	}
 	return (s);
 }
+
+std::string	readable_fsize(size_t size)
+{
+	int					i = 0;
+	std::ostringstream	ss;
+	float				fsize = size;
+	std::string	units[] = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+	while (fsize > 1024 && ++i)
+		fsize /= 1024;
+	ss << fsize << units[i];
+	return (ss.str());
+}
